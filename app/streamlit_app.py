@@ -185,6 +185,7 @@ def patient_input_to_df(inputs: dict) -> pd.DataFrame:
         "ethnicity":      inputs["ethnicity"],
         "systolic_bp":    inputs["systolic_bp"],
         "diastolic_bp":   inputs["diastolic_bp"],
+        "heart_rate":     inputs.get("heart_rate", 70),
         "total_chol":     inputs["total_chol"],
         "hdl":            inputs["hdl"],
         "ldl":            inputs["ldl"],
@@ -357,10 +358,11 @@ def main():
                 ["White", "Black", "Hispanic", "Asian", "Other"])
 
         with st.expander("💓 Vital Signs", expanded=True):
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4 = st.columns(4)
             systolic_bp  = c1.number_input("Systolic BP (mmHg)",  80,  250, 130, step=1)
             diastolic_bp = c2.number_input("Diastolic BP (mmHg)", 40,  140,  80, step=1)
-            bmi          = c3.number_input("BMI (kg/m²)",         15.0, 55.0, 27.0, step=0.1, format="%.1f")
+            heart_rate   = c3.number_input("Heart Rate / Pulse (bpm)", 40, 200, 70, step=1)
+            bmi          = c4.number_input("BMI (kg/m²)",         15.0, 55.0, 27.0, step=0.1, format="%.1f")
 
         with st.expander("🧪 Lab Values", expanded=True):
             c1, c2, c3 = st.columns(3)
@@ -397,7 +399,7 @@ def main():
         # ── Prediction ───────────────────────────────────────────────────────
         inputs = dict(
             age=age, sex=sex, ethnicity=ethnicity,
-            systolic_bp=systolic_bp, diastolic_bp=diastolic_bp, bmi=bmi,
+            systolic_bp=systolic_bp, diastolic_bp=diastolic_bp, heart_rate=heart_rate, bmi=bmi,
             total_chol=total_chol, hdl=hdl, ldl=ldl, hba1c=hba1c,
             smoking_status=smoking_status, diabetes_flag=diabetes_flag,
             meds_list=meds_list,

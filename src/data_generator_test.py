@@ -54,14 +54,6 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
     sbp[rng.random(n_patients) < 0.03] = np.nan
     dbp[rng.random(n_patients) < 0.03] = np.nan
 
-    # ── Heart Rate / Pulse ────────────────────────────────────────────────────
-    # Resting heart rate correlates slightly with age, BMI, and fitness (which inversely correlates with BP)
-    heart_rate_base = 65 + 0.1 * (age_filled - 40) + 0.2 * (sbp_base - 120) + rng.normal(0, 10, n_patients)
-    heart_rate_base = np.clip(heart_rate_base, 40, 120)
-    
-    heart_rate = heart_rate_base.copy()
-    heart_rate[rng.random(n_patients) < 0.02] = np.nan
-
     # ── Cholesterol ───────────────────────────────────────────────────────────
     total_chol = 150 + 0.4 * age_filled + rng.normal(0, 25, n_patients)
     total_chol = np.clip(total_chol, 100, 350)
@@ -130,7 +122,7 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
     # ── Outcome: 5-year CVD Event ─────────────────────────────────────────────
     # Framingham-inspired log-odds
     log_odds = (
-        -8.0
+        -7.6
         + 0.065 * age_filled
         + 0.8 * (sex == "M").astype(float)
         + 0.012 * sbp_base
@@ -140,7 +132,6 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
         + 0.6 * diabetes_flag
         + 0.02 * (bmi - 25).clip(0)
         + 0.8 * (hba1c > 7.0).astype(float)
-        + 0.015 * (heart_rate_base - 70).clip(0)
         - 0.015 * hdl
         # Ethnicity adjustments (modest)
         + 0.3 * (ethnicity == "Black").astype(float)
@@ -159,7 +150,6 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
         "ethnicity":        ethnicity,
         "systolic_bp":      sbp.round(1),
         "diastolic_bp":     dbp.round(1),
-        "heart_rate":       heart_rate.round(0),
         "total_chol":       total_chol.round(1),
         "hdl":              hdl.round(1),
         "ldl":              ldl.round(1),
