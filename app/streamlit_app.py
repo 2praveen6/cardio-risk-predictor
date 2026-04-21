@@ -308,7 +308,7 @@ def main():
     st.markdown("""
     <div class="hero-header">
       <h1>🫀 CardioRisk AI</h1>
-      <p>AI-Powered 5-Year Cardiovascular Risk Prediction with Explainable AI</p>
+      <p>AI-Powered Cardiovascular Risk Prediction with Explainable AI</p>
     </div>
     """, unsafe_allow_html=True)
 
