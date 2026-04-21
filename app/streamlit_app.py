@@ -375,7 +375,24 @@ def main():
 
         with st.expander("🚬 Lifestyle & History", expanded=True):
             smoking_status = st.selectbox("Smoking Status", ["Never", "Former", "Current"])
-            diabetes_flag  = st.checkbox("Diabetes Diagnosed")
+            
+            st.markdown("##### Diabetes Status")
+            # Clinical Rules Logic for Diabetes
+            if hba1c >= 6.5:
+                diabetes_flag = st.checkbox("Diabetes Diagnosed", value=True, disabled=True)
+                st.info("⚠️ Diabetes automatically detected based on HbA1c (≥6.5%)")
+            elif hba1c < 5.7:
+                known_diabetic = st.checkbox("Known diabetic under treatment")
+                if known_diabetic:
+                    diabetes_flag = st.checkbox("Diabetes Diagnosed", value=True, disabled=True)
+                    st.warning("⚠️ Low HbA1c with diabetes may indicate controlled condition (e.g., insulin therapy)")
+                else:
+                    diabetes_flag = st.checkbox("Diabetes Diagnosed", value=False, disabled=True)
+                    st.success("✅ Normal HbA1c range — diabetes not indicated")
+            else:
+                diabetes_flag = st.checkbox("Diabetes Diagnosed", value=False)
+                st.warning("⚠️ Prediabetes range — clinical confirmation required")
+
             meds = st.multiselect(
                 "Current Medications",
                 ["statin", "ace_inhibitor", "arb", "beta_blocker",
