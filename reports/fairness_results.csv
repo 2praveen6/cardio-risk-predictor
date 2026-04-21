@@ -1,7 +1,7 @@
 Subgroup,Value,N,N_events,Prevalence,AUC-ROC
-sex,F,232,24,10.3%,0.807
-sex,M,268,69,25.7%,0.83
-ethnicity,Asian,36,4,11.1%,0.852
-ethnicity,Black,65,15,23.1%,0.819
-ethnicity,Hispanic,89,12,13.5%,0.777
-ethnicity,White,294,60,20.4%,0.856
+sex,F,232,24,10.3%,0.811
+sex,M,268,69,25.7%,0.831
+ethnicity,Asian,36,4,11.1%,0.867
+ethnicity,Black,65,15,23.1%,0.809
+ethnicity,Hispanic,89,12,13.5%,0.776
+ethnicity,White,294,60,20.4%,0.859

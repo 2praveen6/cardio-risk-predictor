@@ -13,6 +13,7 @@ import joblib
 import argparse
 
 from src.utils import get_logger, ensure_dir
+from src.validation import validate_and_correct_ehr
 
 logger = get_logger(__name__)
 
@@ -219,6 +220,16 @@ def run_preprocessing_pipeline(
     df = pd.read_csv(input_csv)
     logger.info(f"  Loaded: {df.shape[0]} rows × {df.shape[1]} cols")
     logger.info(f"  Target prevalence: {df[TARGET].mean():.1%}")
+
+    # ── Validate & Correct Data ──────────────────────────────────────────────
+    logger.info("Running clinical validation rules...")
+    df, warnings = validate_and_correct_ehr(df)
+    for w in warnings:
+        logger.warning(f"  Validation Warning: {w}")
+    
+    cleaned_path = "data/cleaned_synthetic_ehr.csv"
+    df.to_csv(cleaned_path, index=False)
+    logger.info(f"  Cleaned dataset saved → {cleaned_path}")
 
     # ── Train / (Val + Test) split  ─────────────────────────────────────────
     relative_test = test_size / (1 - val_size)

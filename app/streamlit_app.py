@@ -24,6 +24,8 @@ import joblib
 import json
 from datetime import datetime
 
+from src.validation import validate_and_correct_ehr
+
 # ── Page configuration ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="CardioRisk AI — Health Risk Predictor",
@@ -406,6 +408,12 @@ def main():
         )
 
         patient_df = patient_input_to_df(inputs)
+        
+        # Validate and apply clinical correction rules
+        patient_df, warnings = validate_and_correct_ehr(patient_df, is_streamlit=True)
+        for w in warnings:
+            st.warning(f"⚠️ **Clinical Correction**: {w}")
+
         model = models[model_choice]
 
         try:
