@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.data_generator import generate_synthetic_ehr
 from src.preprocessor import run_preprocessing_pipeline
 from src.models import get_model
+from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE
 from src.evaluator import (
     compute_metrics, print_metrics_table,
     evaluate_fairness,
@@ -65,6 +67,21 @@ def run_training_pipeline(
     X_val,   y_val   = splits["X_val"],   splits["y_val"]
     X_test,  y_test  = splits["X_test"],  splits["y_test"]
     test_raw          = splits["test_raw"]
+    preprocessor      = splits["preprocessor"]
+
+    logger.info("── Data Analysis (Target Class Distribution Before SMOTE) ──")
+    pos_count = y_train.sum()
+    neg_count = len(y_train) - pos_count
+    logger.info(f"Train - Positive (Risk): {pos_count} ({pos_count/len(y_train)*100:.1f}%), Negative: {neg_count} ({neg_count/len(y_train)*100:.1f}%)")
+
+    logger.info("Applying SMOTE to balance the training dataset...")
+    smote = SMOTE(random_state=seed)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
+    
+    logger.info("── Target Class Distribution After SMOTE ──")
+    pos_count_sm = sum(y_train == 1)
+    neg_count_sm = sum(y_train == 0)
+    logger.info(f"Train - Positive (Risk): {pos_count_sm}, Negative: {neg_count_sm}")
 
     # ── Step 3: Train Models ─────────────────────────────────────────────────
     trained_models = {}
@@ -88,7 +105,9 @@ def run_training_pipeline(
         metrics = compute_metrics(y_test.values, proba)
         logger.info(
             f"  AUC-ROC: {metrics['auc_roc']:.3f} "
-            f"| AUC-PR: {metrics['auc_pr']:.3f} "
+            f"| Precision: {metrics['precision']:.3f} "
+            f"| Recall: {metrics['recall']:.3f} "
+            f"| F1: {metrics['f1']:.3f} "
             f"| Brier: {metrics['brier_score']:.4f}"
         )
 
@@ -178,6 +197,44 @@ def run_training_pipeline(
     logger.info(f"  AUC-ROC: {all_metrics[best_model_name]['auc_roc']:.3f}")
     logger.info(f"  AUC-PR:  {all_metrics[best_model_name]['auc_pr']:.3f}")
     logger.info(f"  Brier:   {all_metrics[best_model_name]['brier_score']:.4f}")
+
+    # ── Step 7: Sanity Testing Extreme Cases ────────────────────────────────
+    logger.info("\n── Sanity Testing Extreme Cases ──")
+    
+    extreme_high_risk = pd.DataFrame([{
+        "age": 80, "sex": "M", "ethnicity": "Caucasian",
+        "systolic_bp": 170, "diastolic_bp": 100, "heart_rate": 90, "bmi": 35.0,
+        "total_chol": 260, "hdl": 30, "ldl": 180, "hba1c": 7.5,
+        "smoking_status": "Current", "diabetes_flag": 1,
+        "meds_list": "none"
+    }])
+    
+    extreme_low_risk = pd.DataFrame([{
+        "age": 30, "sex": "F", "ethnicity": "Asian",
+        "systolic_bp": 110, "diastolic_bp": 70, "heart_rate": 65, "bmi": 21.0,
+        "total_chol": 150, "hdl": 60, "ldl": 80, "hba1c": 5.0,
+        "smoking_status": "Never", "diabetes_flag": 0,
+        "meds_list": "none"
+    }])
+    
+    # Process through pipeline
+    from src.validation import validate_and_correct_ehr
+    ehr_high, _ = validate_and_correct_ehr(extreme_high_risk)
+    ehr_low, _ = validate_and_correct_ehr(extreme_low_risk)
+    
+    X_high = preprocessor.transform(ehr_high)
+    X_low = preprocessor.transform(ehr_low)
+    
+    high_prob = best_model.predict_proba(X_high)[0]
+    low_prob = best_model.predict_proba(X_low)[0]
+    
+    logger.info(f"Extreme High Risk Patient Prob ({best_model_name}): {high_prob:.3f}")
+    logger.info(f"Extreme Low Risk Patient Prob ({best_model_name}): {low_prob:.3f}")
+    
+    if high_prob > 0.5:
+        logger.info("✅ SUCCESS: High risk patient correctly predicted with high probability.")
+    else:
+        logger.warning("❌ WARNING: High risk patient predicted with low probability!")
 
     return trained_models, explainer, splits
 

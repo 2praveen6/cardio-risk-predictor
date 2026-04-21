@@ -35,8 +35,11 @@ ENGINEERED_FEATURES = [
     "hba1c_elevated",      # 1 if HbA1c > 6.5
     "med_count",           # number of distinct medications
     "bp_elevated",         # 1 if SBP>=140 or DBP>=90
-    "is_male",             # binary sex encoding
-    "age_decade",          # age / 10
+    "lipid_ratio",         # LDL / HDL
+    "bp_severity",         # SBP + DBP
+    "metabolic_risk",      # BMI * HbA1c
+    "age_risk",            # Age * SBP
+    "smoker_binary",       # 0=Never, 1=Former, 2=Current
 ]
 
 
@@ -86,8 +89,22 @@ class EHRPreprocessor:
         # Binary sex
         df["is_male"] = (df["sex"] == "M").astype(float)
 
-        # Age in decades
-        df["age_decade"] = df["age"] / 10.0
+        # Lipid Ratio
+        df["lipid_ratio"] = df["ldl"] / df["hdl"].replace(0, np.nan)
+
+        # BP Severity
+        df["bp_severity"] = df["systolic_bp"] + df["diastolic_bp"]
+
+        # Metabolic Risk
+        df["metabolic_risk"] = df["bmi"] * df["hba1c"]
+
+        # Age Risk
+        df["age_risk"] = df["age"] * df["systolic_bp"]
+
+        # Smoker Binary (ordinal map)
+        smoker_map = {"Never": 0, "Former": 1, "Current": 2}
+        if "smoking_status" in df.columns:
+            df["smoker_binary"] = df["smoking_status"].map(smoker_map).fillna(0).astype(float)
 
         return df
 
