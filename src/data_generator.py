@@ -122,7 +122,7 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
     # ── Outcome: 5-year CVD Event ─────────────────────────────────────────────
     # Framingham-inspired log-odds
     log_odds = (
-        -10.0
+        -8.0
         + 0.065 * age_filled
         + 0.8 * (sex == "M").astype(float)
         + 0.012 * sbp_base
@@ -138,8 +138,8 @@ def generate_synthetic_ehr(n_patients: int = 5000, seed: int = RANDOM_SEED) -> p
     )
 
     prob_event = 1 / (1 + np.exp(-log_odds))
-    # Scale to realistic ~15% prevalence
-    prob_event = np.clip(prob_event * 0.6, 0, 1)
+    # No artificial scaling, rely on log odds properly targeting median ~15%
+    prob_event = np.clip(prob_event, 0, 1)
     event_within_5yrs = (rng.random(n_patients) < prob_event).astype(int)
 
     # ── Assemble DataFrame ────────────────────────────────────────────────────
