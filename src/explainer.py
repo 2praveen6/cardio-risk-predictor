@@ -40,7 +40,8 @@ class RiskExplainer:
         logger.info(f"Building SHAP explainer for {model_name}...")
 
         if model_name == "xgboost":
-            self.explainer = shap.TreeExplainer(model._model)
+            base_estimator = getattr(model, "_base_model", model._model)
+            self.explainer = shap.TreeExplainer(base_estimator)
             self._uses_tree = True
         else:
             # For LR and NN, use linear or kernel explainer

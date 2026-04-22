@@ -13,6 +13,7 @@ import json
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.frozen import FrozenEstimator
 import xgboost as xgb
 
 from src.utils import get_logger
@@ -109,11 +110,12 @@ class XGBoostRiskModel(BaseModel):
             scale_pos_weight=scale_pos_weight,
             random_state=seed,
             eval_metric=["logloss", "auc"],
-            use_label_encoder=False,
             tree_method="hist",
             early_stopping_rounds=30,
         )
-        self._model = xgb.XGBClassifier(**self.params)
+        self._base_model = xgb.XGBClassifier(**self.params)
+        # Wrap XGBoost in a probability calibrator to ensure extreme cases aren't squashed
+        self._model = CalibratedClassifierCV(estimator=self._base_model, cv="prefit", method="isotonic")
         self.feature_names_: list[str] = []
 
     def fit(self, X, y, X_val=None, y_val=None) -> "XGBoostRiskModel":
@@ -128,13 +130,21 @@ class XGBoostRiskModel(BaseModel):
         if X_val is not None and y_val is not None:
             eval_set.append((np.asarray(X_val, dtype=float), np.asarray(y_val)))
 
-        self._model.fit(
+        self._base_model.fit(
             X_arr, y_arr,
             eval_set=eval_set,
             verbose=False,
         )
-        best = self._model.best_iteration
+        best = self._base_model.best_iteration
         logger.info(f"  Best iteration: {best}")
+
+        if X_val is not None and y_val is not None:
+            logger.info("  Applying isotonic calibration on validation set...")
+            self._model = CalibratedClassifierCV(estimator=FrozenEstimator(self._base_model), method="isotonic")
+            self._model.fit(np.asarray(X_val, dtype=float), np.asarray(y_val))
+        else:
+            self._model = self._base_model
+
         return self
 
     def predict_proba(self, X) -> np.ndarray:

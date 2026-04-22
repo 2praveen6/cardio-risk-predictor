@@ -9,6 +9,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
+from imblearn.over_sampling import SMOTE
 import joblib
 import argparse
 
@@ -35,11 +36,12 @@ ENGINEERED_FEATURES = [
     "hba1c_elevated",      # 1 if HbA1c > 6.5
     "med_count",           # number of distinct medications
     "bp_elevated",         # 1 if SBP>=140 or DBP>=90
+    "is_male",             # binary sex encoding
     "lipid_ratio",         # LDL / HDL
     "bp_severity",         # SBP + DBP
     "metabolic_risk",      # BMI * HbA1c
     "age_risk",            # Age * SBP
-    "smoker_binary",       # 0=Never, 1=Former, 2=Current
+    "smoker_binary",       # 1 if Current or Former, else 0
 ]
 
 
@@ -89,22 +91,15 @@ class EHRPreprocessor:
         # Binary sex
         df["is_male"] = (df["sex"] == "M").astype(float)
 
-        # Lipid Ratio
+        # New Engineered Features
         df["lipid_ratio"] = df["ldl"] / df["hdl"].replace(0, np.nan)
-
-        # BP Severity
         df["bp_severity"] = df["systolic_bp"] + df["diastolic_bp"]
-
-        # Metabolic Risk
         df["metabolic_risk"] = df["bmi"] * df["hba1c"]
-
-        # Age Risk
         df["age_risk"] = df["age"] * df["systolic_bp"]
-
-        # Smoker Binary (ordinal map)
-        smoker_map = {"Never": 0, "Former": 1, "Current": 2}
+        
+        # Smoker binary
         if "smoking_status" in df.columns:
-            df["smoker_binary"] = df["smoking_status"].map(smoker_map).fillna(0).astype(float)
+            df["smoker_binary"] = df["smoking_status"].isin(["Current", "Former"]).astype(float)
 
         return df
 
@@ -273,8 +268,15 @@ def run_preprocessing_pipeline(
     X_test = preprocessor.transform(test_df)
     y_test = test_df[TARGET].reset_index(drop=True)
 
+    # ── Handle Class Imbalance with SMOTE ─────────────────────────────────────
+    logger.info("Applying SMOTE to balance the training dataset...")
+    smote = SMOTE(random_state=seed)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    logger.info(f"  Training set size after SMOTE: {len(y_train_resampled)}")
+    logger.info(f"  Target prevalence after SMOTE: {y_train_resampled.mean():.1%}")
+
     # Save splits
-    for name, X, y in [("train", X_train, y_train),
+    for name, X, y in [("train", X_train_resampled, y_train_resampled),
                         ("val",   X_val,   y_val),
                         ("test",  X_test,  y_test)]:
         X.assign(event_within_5yrs=y.values).to_csv(
