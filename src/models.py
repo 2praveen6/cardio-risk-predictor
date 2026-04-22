@@ -16,6 +16,10 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.frozen import FrozenEstimator
 import xgboost as xgb
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -237,4 +241,4 @@ if __name__ == "__main__":
             else:
                 m.fit(X_tr, y_tr)
             proba = m.predict_proba(X_v)
-            print(f"✓ {name}: proba range [{proba.min():.3f}, {proba.max():.3f}]")
+            print(f"Success {name}: proba range [{proba.min():.3f}, {proba.max():.3f}]")

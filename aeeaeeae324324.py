@@ -1,0 +1,1 @@
+print(model.predict_proba(extreme_case))

@@ -435,7 +435,7 @@ def main():
 
         try:
             X_transformed = preprocessor.transform(patient_df)
-            risk_score = float(model.predict_proba(X_transformed)[0])
+            risk_score = float(model.predict_proba(X_transformed)[0][1])
         except Exception as e:
             st.error(f"Prediction error: {e}")
             return
