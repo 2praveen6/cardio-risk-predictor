@@ -435,7 +435,11 @@ def main():
 
         try:
             X_transformed = preprocessor.transform(patient_df)
-            risk_score = float(model.predict_proba(X_transformed)[0][1])
+            probs = np.array(model.predict_proba(X_transformed)).ravel()
+            
+            # Whether it returns [prob_neg, prob_pos] or just [prob_pos], the positive probability is always the last element
+            risk_score = float(probs[-1])
+
         except Exception as e:
             st.error(f"Prediction error: {e}")
             return
