@@ -9,7 +9,6 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
-from imblearn.over_sampling import SMOTE
 import joblib
 import argparse
 
@@ -269,6 +268,7 @@ def run_preprocessing_pipeline(
     y_test = test_df[TARGET].reset_index(drop=True)
 
     # ── Handle Class Imbalance with SMOTE ─────────────────────────────────────
+    from imblearn.over_sampling import SMOTE # lazy import – not needed for inference
     logger.info("Applying SMOTE to balance the training dataset...")
     smote = SMOTE(random_state=seed)
     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
